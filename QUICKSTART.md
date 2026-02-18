@@ -63,8 +63,8 @@ Edit `python/simulate.py`, function `main()`:
 
 - **Faster simulation**: Reduce `nx`, `ny` (e.g., 100x100)
 - **More detail**: Increase `nx`, `ny` (e.g., 400x400)
-- **Stronger phase separation**: Make `G` more negative (e.g., -150)
-- **Weaker phase separation**: Make `G` less negative (e.g., -80)
+- **Stronger phase separation**: Make `G` more negative (e.g., -6.5)
+- **Weaker phase separation**: Make `G` less negative (e.g., -4.5)
 - **Higher viscosity**: Reduce `tau` (e.g., 0.7)
 - **Lower viscosity**: Increase `tau` (e.g., 1.3)
 

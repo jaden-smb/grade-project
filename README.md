@@ -180,11 +180,12 @@ Edit the `main()` function in `python/simulate.py` to modify simulation paramete
 
 ### Cohesion Parameter (`G`)
 - **MUST be negative** for liquid-gas phase separation
-- **Range**: -200 < G < -50
-- **More negative** (e.g., -150): Stronger phase separation, sharper interface
-- **Less negative** (e.g., -80): Weaker phase separation, diffuse interface
-- **Too negative**: May cause instability
-- **Recommended**: -120
+- **Critical value**: G_c ≈ -4 (below this, phase separation occurs)
+- **Range**: -4.5 to -7.0
+- **More negative** (e.g., -6.5): Stronger phase separation, sharper interface
+- **Less negative** (e.g., -4.5): Weaker phase separation, diffuse interface
+- **Too negative** (e.g., < -8): Causes numerical instability and blow-up
+- **Recommended**: -5.5
 
 ### Initial Densities (`rho_liquid`, `rho_gas`)
 - **rho_liquid**: Density of the liquid phase (typically 1.5 - 3.0)
