@@ -15,6 +15,7 @@ LBMShanChen::LBMShanChen(int nx, int ny, double tau, double G,
     uy_.resize(n_total_, 0.0);
     f_.resize(n_total_ * Q, 0.0);
     f_eq_.resize(n_total_ * Q, 0.0);
+    f_tmp_.resize(n_total_ * Q, 0.0);
     Fx_.resize(n_total_, 0.0);
     Fy_.resize(n_total_, 0.0);
     
@@ -25,7 +26,7 @@ LBMShanChen::LBMShanChen(int nx, int ny, double tau, double G,
 LBMShanChen::~LBMShanChen() = default;
 
 void LBMShanChen::initializeDroplet(int center_x, int center_y, double radius) {
-    constexpr double interface_width = 5.0;
+    constexpr double interface_width = 10.0;
     double rho_avg = 0.5 * (rho_liquid_ + rho_gas_);
     double rho_diff = 0.5 * (rho_liquid_ - rho_gas_);
     
@@ -46,6 +47,12 @@ void LBMShanChen::initializeDroplet(int center_x, int center_y, double radius) {
 }
 
 void LBMShanChen::step() {
+    // Standard Shan-Chen time-step sequence:
+    // 1. Force from current density (set by previous updateMacroscopic)
+    // 2. Equilibrium with force-shifted velocity
+    // 3. BGK collision
+    // 4. Streaming (propagation)
+    // 5. Update density and physical velocity from post-streaming distributions
     computeShanChenForce();
     computeEquilibrium();
     collide();
@@ -54,7 +61,7 @@ void LBMShanChen::step() {
 }
 
 double LBMShanChen::psi(double rho) const {
-    return 1.0 - std::exp(-rho);
+    return 1.0 - std::exp(-1.5 * rho);
 }
 
 void LBMShanChen::computeShanChenForce() {
@@ -80,23 +87,46 @@ void LBMShanChen::computeShanChenForce() {
 }
 
 void LBMShanChen::computeEquilibrium() {
-    double tau_shift = tau_ - 0.5;
+    // Standard Shan-Chen velocity-shift: u_eq = u_phys + F/(2*rho)
+    // Since ux_[] already stores u_phys = (Σf·c + F/2)/rho (from updateMacroscopic),
+    // adding another F/(2*rho) gives u_eq = u_bare + F/rho, the standard shift.
+    const double u_max_sq = 0.04;  // Mach ~0.2 safety cap
+
     for (int j = 0; j < ny_; ++j) {
         for (int i = 0; i < nx_; ++i) {
             int idx = index(i, j);
             double rho = rho_[idx];
             double ux, uy;
             if (rho > 1e-10) {
-                ux = ux_[idx] + tau_shift * Fx_[idx] / rho;
-                uy = uy_[idx] + tau_shift * Fy_[idx] / rho;
+                // Equilibrium velocity = u_phys + F/(2*rho)
+                ux = ux_[idx] + 0.5 * Fx_[idx] / rho;
+                uy = uy_[idx] + 0.5 * Fy_[idx] / rho;
             } else {
                 ux = uy = 0.0;
             }
-            
+
             double u_sq = ux*ux + uy*uy;
+            if (u_sq > u_max_sq) {
+                double scale = std::sqrt(u_max_sq / u_sq);
+                ux *= scale;
+                uy *= scale;
+                u_sq = u_max_sq;
+                ++clamp_count_;
+            }
+
             for (int q = 0; q < Q; ++q) {
                 double cu = cx_[q]*ux + cy_[q]*uy;
                 f_eq_[f_index(i, j, q)] = w_[q] * rho * (1.0 + 3.0*cu + 4.5*cu*cu - 1.5*u_sq);
+            }
+
+            // Mass conservation: rescale f_eq so sum == rho exactly.
+            double feq_sum = 0.0;
+            for (int q = 0; q < Q; ++q)
+                feq_sum += f_eq_[f_index(i, j, q)];
+            if (std::abs(feq_sum - rho) > 1e-14) {
+                double correction = rho / feq_sum;
+                for (int q = 0; q < Q; ++q)
+                    f_eq_[f_index(i, j, q)] *= correction;
             }
         }
     }
@@ -113,20 +143,16 @@ void LBMShanChen::collide() {
 }
 
 void LBMShanChen::stream() {
-    std::vector<double> f_new(n_total_ * Q, 0.0);
-    
     for (int j = 0; j < ny_; ++j) {
         for (int i = 0; i < nx_; ++i) {
             for (int q = 0; q < Q; ++q) {
-                // pull from periodic source
                 int i_src = (i - cx_[q] + nx_) % nx_;
                 int j_src = (j - cy_[q] + ny_) % ny_;
-                f_new[f_index(i, j, q)] = f_[f_index(i_src, j_src, q)];
+                f_tmp_[f_index(i, j, q)] = f_[f_index(i_src, j_src, q)];
             }
         }
     }
-    
-    std::copy(f_new.begin(), f_new.end(), f_.begin());
+    f_.swap(f_tmp_);
 }
 
 void LBMShanChen::updateMacroscopic() {

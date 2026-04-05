@@ -5,7 +5,7 @@ Alternative to CMake build method
 
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup, Extension
-import pybind11
+import pybind11, sys
 
 ext_modules = [
     Pybind11Extension(
@@ -16,7 +16,7 @@ ext_modules = [
         ],
         include_dirs=["cpp"],
         cxx_std=17,
-        extra_compile_args=["-O3", "-Wall", "-Wextra"] if pybind11.get_cmake_dir() else [],
+        extra_compile_args=[] if sys.platform == "win32" else ["-O3", "-Wall", "-Wextra"],
     ),
 ]
 

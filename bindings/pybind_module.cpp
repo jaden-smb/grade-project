@@ -39,7 +39,19 @@ PYBIND11_MODULE(lbm_shan_chen, m) {
         
         .def_property_readonly("nx", &LBMShanChen::getNx,
                                "Grid width")
-        
+
+        .def("set_G", &LBMShanChen::setG,
+             "Ramp cohesion to simulate heating / evaporation",
+             py::arg("G"))
+
+        .def_property_readonly("G", &LBMShanChen::getG, "Cohesion parameter")
+        .def_property_readonly("tau", &LBMShanChen::getTau, "Relaxation time")
+
+        .def("get_clamp_count", &LBMShanChen::getClampCount,
+             "Number of cells where velocity was clamped in the last equilibrium computation")
+        .def("reset_clamp_count", &LBMShanChen::resetClampCount,
+             "Reset the velocity clamp counter")
+
         .def_property_readonly("ny", &LBMShanChen::getNy,
                                "Grid height");
 }

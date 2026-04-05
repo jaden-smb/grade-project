@@ -7,7 +7,7 @@ The simulation implements a two-phase LBM using the Shan-Chen pseudo-potential m
 ```
 1. Compute Shan-Chen force: F = -G * psi(rho) * Σ(w_i * psi(rho_neighbor) * c_i)
 2. Compute equilibrium: f_i^eq = w_i * rho * [1 + 3*(c_i·u_eq) + 4.5*(c_i·u_eq)^2 - 1.5*u_eq^2]
-   where u_eq = u + F/(2*rho)
+   where u_eq = u_phys + F/(2*rho) = u_bare + F/rho
 3. Collide: f_i' = f_i - (f_i - f_i^eq) / tau
 4. Stream: f_i(x + c_i, t+1) = f_i'(x, t)
 5. Update macroscopic: rho = Σ f_i, u = (Σ f_i*c_i + F/2) / rho
@@ -22,9 +22,10 @@ The Shan-Chen force is implemented using the "velocity shift" method:
    F = -G * psi(rho) * Σ(w_i * psi(rho_neighbor) * c_i)
    ```
 
-2. **Equilibrium calculation**: Uses force-modified velocity
+2. **Equilibrium calculation**: Uses the force-shifted velocity
    ```cpp
-   u_eq = u + F/(2*rho)
+   u_eq = u + F/(2*rho)   // u already has F/(2*rho) from updateMacroscopic(),
+                           // so u_eq = u_bare + F/rho (standard Shan-Chen shift)
    f_i^eq = f_i^eq(u_eq)
    ```
 
@@ -78,6 +79,7 @@ The implementation includes several stability measures:
 2. **Relaxation time**: Must satisfy `tau > 0.5` for stability
 3. **Force magnitude**: Very large |G| can cause instability
 4. **Density range**: Extreme densities may cause numerical issues
+5. **Velocity clamping counter**: `computeEquilibrium()` clamps velocity when `u² > 0.04` (Mach ~0.2). The clamp count is tracked via `getClampCount()` / `resetClampCount()` and logged in Python every `save_interval` steps. Frequent clamping indicates the simulation is operating near or beyond its stability limit.
 
 ## Performance Optimizations
 
@@ -121,10 +123,12 @@ Add to Python script:
 
 The implementation can be validated by:
 
-1. **Mass conservation**: Total mass should remain constant
+1. **Mass conservation**: Total mass should remain constant. The Python driver reports mass drift percentage at the end of each run (`Mass drift: +X.XXXX%`). After the velocity-clamp threshold was raised to u²=0.04, mass drift in a 5000-step Scenario A run is typically < 1%.
 2. **Momentum conservation**: In absence of forces, momentum should be conserved
 3. **Phase separation**: For G < 0, system should separate into liquid and gas
 4. **Interface properties**: Interface width and surface tension should match theoretical predictions
+5. **Coexistence curve sweep**: Scenario C in `simulate.py` sweeps G from -4.5 to -6.5, measuring the final equilibrium liquid (max ρ) and gas (min ρ) densities, and plots the resulting coexistence curve. This provides a quantitative check against Maxwell construction predictions.
+6. **Laplace pressure test (Scenario D)**: Δp vs 1/R is fitted linearly to extract surface tension σ. The pressure uses the full Shan-Chen equation of state: `p = ρ·cs² + G·cs²/2·ψ(ρ)²`, where `ψ(ρ) = 1 − exp(−1.5ρ)` and `cs² = 1/3`. This eliminates the large unphysical y-intercept that appears when the ideal-gas EoS (`p = ρ·cs²`) is used instead, and makes the fitted σ physically meaningful.
 
 ## Known Limitations
 

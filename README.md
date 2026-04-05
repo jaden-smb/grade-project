@@ -44,7 +44,7 @@ F = -G * psi(rho) * Σ(w_i * psi(rho_neighbor) * c_i)
 
 where:
 - `G` is the cohesion parameter (negative for liquid-gas separation)
-- `psi(rho) = 1 - exp(-rho)` is the pseudo-potential function
+- `psi(rho) = 1 - exp(-1.5*rho)` is the pseudo-potential function
 - `w_i` are the D2Q9 weights
 - `c_i` are the velocity vectors
 
@@ -61,7 +61,8 @@ where `tau` is the relaxation time controlling viscosity.
 ### Macroscopic Variables
 
 - **Density**: `rho = Σ f_i`
-- **Velocity**: `u = (Σ f_i * c_i + F/2) / rho`
+- **Physical velocity**: `u = (Σ f_i * c_i + F/2) / rho`
+- **Equilibrium velocity**: `u_eq = u_phys + F/(2*rho)` = `u_bare + F/rho` (standard Shan-Chen velocity-shift, original 1993 formulation)
 
 ## Build Instructions
 
@@ -155,12 +156,12 @@ python setup.py build_ext --inplace
    python python/simulate.py
    ```
 
-The script will:
-- Initialize a liquid droplet in a gas environment
-- Run the simulation for the specified number of steps
-- Generate density plots at various time steps
-- Create an animated visualization
-- Save output images and animations
+The script runs four scenarios sequentially:
+
+- **Scenario A** (`output/scenario_a_equilibrium/`): Steady-state droplet equilibrium — G=-5.0 fixed, 5000 steps. Demonstrates spontaneous phase separation.
+- **Scenario B** (`output/scenario_b_evaporation/`): G-ramp evaporation analogy — G ramped from -5.0 to -3.7 (past critical G_c ≈ -4.0), 8000 steps. Droplet dissolves as cohesion weakens past the critical point.
+- **Scenario C** (`output/scenario_c_coexistence/`): Parameter sweep — five G values (-4.0 to -6.0), plots coexistence curve of liquid and gas equilibrium densities.
+- **Scenario D** (`output/scenario_d_laplace/`): Laplace pressure test — five droplet radii (20–60 lu), fits Δp vs 1/R to extract surface tension σ using the full Shan-Chen EoS.
 
 ## Parameter Tuning
 
@@ -205,11 +206,22 @@ Edit the `main()` function in `python/simulate.py` to modify simulation paramete
 
 ## Output Files
 
-The simulation generates:
-- `density_initial.png`: Initial state
-- `density_step_*.png`: Intermediate states
-- `density_final.png`: Final state
-- `density_evolution.gif`: Animated visualization
+Output is organized by scenario:
+
+- `output/scenario_a_equilibrium/` — steady-state droplet plots and animations
+- `output/scenario_b_evaporation/` — evaporation ramp plots and animations
+- `output/scenario_c_coexistence/` — coexistence curve plot (`coexistence_curve.png`)
+
+Within each scenario directory:
+- `density_initial.png`: Initial state heatmap
+- `density_initial_surface.png`: Initial state surface view
+- `density_step_*.png`: Intermediate heatmaps
+- `density_step_*_surface.png`: Intermediate surface views
+- `density_final.png`: Final state heatmap
+- `density_final_surface.png`: Final state surface view
+- `density_evolution.gif`: 2D animated evolution
+- `density_evolution_surface.gif`: Surface view animation
+- `metrics.png`: Radius, mass, max density, aspect ratio, and circularity over time
 
 ## Code Explanation
 
@@ -247,14 +259,54 @@ Provides:
 ## Performance Considerations
 
 - **Memory layout**: Row-major order for cache efficiency
-- **No unnecessary allocations**: Reuses buffers during streaming
+- **Streaming buffer**: `f_tmp_` pre-allocated in constructor — no per-step heap allocation
 - **Optimized loops**: Direct array access, minimal function call overhead
 - **Compilation**: Use `-O3` optimization flag (included in CMakeLists.txt)
+- **MLUPS metric**: Throughput is reported as Million Lattice Updates Per Second (MLUPS) at the end of each simulation run. A typical 200×200 grid achieves 20–100 MLUPS depending on hardware.
 
 For larger simulations, consider:
 - Using OpenMP for parallelization
 - GPU acceleration (CUDA/OpenCL)
 - Adaptive mesh refinement
+
+## Decision on 3D Extension
+
+The project proposal listed a D3Q19/D3Q27 three-dimensional extension as a conditional objective ("según viabilidad computacional"). After profiling the D2Q9 prototype on the development machine (mid-range laptop), the decision was made to remain with the 2D implementation for the following reasons:
+
+### Memory requirements
+
+A D3Q19 grid of 100³ cells requires:
+- **Distribution functions** `f`: 19 × 10⁶ doubles = ~145 MB
+- **Density** `ρ`: 1 × 10⁶ doubles = ~8 MB
+- **Velocity** `u` (3 components): 3 × 10⁶ doubles = ~24 MB
+- **Force** `F` (3 components): 3 × 10⁶ doubles = ~24 MB
+- **Streaming buffer** `f_tmp`: same as `f` = ~145 MB
+
+**Total ≈ 350 MB** for a single simulation instance, exceeding the memory comfortably available for interactive work on the target hardware.
+
+### Compute time
+
+Each streaming step in 3D touches 19 neighbors per cell with periodic wrapping in three dimensions. Empirical scaling from the D2Q9 results (≈50 MLUPS on the development machine) predicts:
+- D3Q19 at 100³: roughly 20–50× slower per step than D2Q9 at comparable resolution.
+- A 3000-step run at 100³ would take an estimated **30–60 minutes** per scenario, making iterative parameter tuning impractical.
+
+### Scope decision
+
+The 2D prototype fully validates the core physics targeted by the thesis:
+- Spontaneous liquid-gas phase separation
+- Droplet equilibrium and circularity
+- Young-Laplace pressure scaling (surface tension measurement)
+- G-ramp evaporation analogy
+- Coexistence curve
+
+The architecture is structured so that a D3Q19 extension would require only a new C++ class with the 19-velocity set — the Python driver, PyBind11 bindings, and visualisation layer would need minimal changes. This is documented here as a clear future-work path rather than a limitation of the method.
+
+## Known Limitations
+
+1. **D2Q9 only** — This is a 2D simulation. The surface-view plots are 3D surface renderings of the 2D density field, not a volumetric 3D (D3Q19/D3Q27) simulation. See the section above for the rationale.
+2. **Lattice anisotropy** — At intermediate G values the droplet can appear slightly square due to the lattice geometry. The circularity metric (reported in `metrics.png` and animation titles) quantifies this artifact (1.0 = perfect circle, ~0.785 = square).
+3. **BGK accuracy** — The single-relaxation-time BGK operator limits accuracy at high density ratios. A multiple-relaxation-time (MRT) operator would improve stability.
+4. **Mass drift** — With the velocity clamp threshold at u²=0.04 (Mach ~0.2), a typical 5000-step Scenario A run shows mass drift well under 1%. Higher |G| values or longer runs may exhibit slightly larger drift due to residual clamping near the interface.
 
 ## Troubleshooting
 

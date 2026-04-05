@@ -50,12 +50,14 @@ python python/simulate.py
 
 ## Expected Output
 
-The simulation will:
-1. Initialize a liquid droplet in a gas environment
-2. Run for 1000 time steps
-3. Generate plots showing density evolution
-4. Create an animated GIF
-5. Save output images to the current directory
+The simulation runs four scenarios sequentially:
+
+1. **Scenario A** (`output/scenario_a_equilibrium/`): 200×200 grid, G=-5.0, 5000 steps. Steady-state droplet equilibrium — demonstrates spontaneous phase separation into a stable liquid droplet in gas.
+2. **Scenario B** (`output/scenario_b_evaporation/`): 200×200 grid, G ramped -5.0→-3.7, 8000 steps. Evaporation analogy — droplet dissolves as cohesion is ramped past the critical point (G_c ≈ -4.0).
+3. **Scenario C** (`output/scenario_c_coexistence/`): 150×150 grid, 3000 steps per G value. Sweeps G ∈ {-4.0, -4.5, -5.0, -5.5, -6.0} and plots the coexistence curve.
+4. **Scenario D** (`output/scenario_d_laplace/`): 200×200 grid, 5000 steps per radius. Tests five droplet radii (20–60 lu) and fits Δp vs 1/R using the full Shan-Chen EoS to extract surface tension σ.
+
+Each scenario saves density plots, surface view images, animated GIFs, and a `metrics.png` with radius, mass, max density, aspect ratio, and circularity over time. Performance (MLUPS) is printed to the console at the end of each run.
 
 ## Quick Parameter Tuning
 
