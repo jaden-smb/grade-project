@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""Scenario B — G-Ramp Evaporation Analogy.
-
-Ramps the cohesion parameter G from -5.0 to -3.7 over 8000 steps.
-Past the critical point (Gc ≈ -4.0) the droplet dissolves, simulating evaporation.
-"""
 
 import sys
 import os

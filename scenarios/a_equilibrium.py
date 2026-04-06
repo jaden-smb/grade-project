@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""Scenario A — Steady-State Droplet Equilibrium.
-
-Runs a 200x200 simulation to equilibrium (5000 steps) and saves density plots,
-3D surface views, a 2D animation, metrics, and an OBJ sequence for Blender.
-"""
 
 import sys
 import os

@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""Scenario C — Parameter Sweep for the Coexistence Curve.
-
-Runs one simulation per G value and records the equilibrium liquid/gas densities.
-Produces a coexistence curve plot (rho_liq and rho_gas vs G).
-"""
 
 import sys
 import os

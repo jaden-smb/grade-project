@@ -1,5 +1,3 @@
-"""Unit tests for lbm.metrics — no C++ extension required."""
-
 import sys
 import os
 import numpy as np
@@ -8,9 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from lbm.metrics import compute_metrics
 
-
 def test_perfect_circle_metrics():
-    """A circular liquid region should have circularity close to 1 and correct radius."""
     ny, nx = 100, 100
     rho = np.zeros((ny, nx))
     cy, cx, R = 50, 50, 20
@@ -31,7 +27,6 @@ def test_perfect_circle_metrics():
 
 
 def test_empty_field_returns_zero_radius():
-    """When no pixels exceed the threshold, radius and circularity should be 0."""
     rho = np.full((50, 50), 0.1)
     total_mass, radius, max_density, aspect_ratio, circularity = compute_metrics(rho, threshold=1.0)
 
@@ -41,7 +36,6 @@ def test_empty_field_returns_zero_radius():
 
 
 def test_mass_conservation():
-    """Total mass is always the sum of all density values regardless of threshold."""
     rng = np.random.default_rng(42)
     rho = rng.uniform(0.05, 2.5, size=(80, 80))
     total_mass, *_ = compute_metrics(rho, threshold=1.0)
@@ -49,7 +43,6 @@ def test_mass_conservation():
 
 
 def test_aspect_ratio_circular():
-    """A perfect circle should have aspect ratio close to 1."""
     ny, nx = 100, 100
     rho = np.zeros((ny, nx))
     ys, xs = np.ogrid[:ny, :nx]

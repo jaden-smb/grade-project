@@ -1,5 +1,3 @@
-"""Thin Python wrapper around the compiled lbm_shan_chen C++ extension."""
-
 try:
     import lbm_shan_chen as _ext
 except ImportError as e:
@@ -13,11 +11,6 @@ except ImportError as e:
 
 
 class LBMSimulator:
-    """Wraps the C++ LBMShanChen class with a Python-friendly API.
-
-    The compiled extension is accessed via this class so the rest of the
-    Python code never imports lbm_shan_chen directly.
-    """
 
     def __init__(self, nx: int, ny: int, tau: float, G: float,
                  rho_liquid: float, rho_gas: float):
@@ -35,15 +28,12 @@ class LBMSimulator:
         self._sim.set_G(G)
 
     def get_density(self):
-        """Return the flat (row-major) density array from C++."""
         return self._sim.get_density()
 
     def get_velocity_x(self):
-        """Return the flat (row-major) x-velocity array from C++."""
         return self._sim.get_velocity_x()
 
     def get_velocity_y(self):
-        """Return the flat (row-major) y-velocity array from C++."""
         return self._sim.get_velocity_y()
 
     def get_clamp_count(self) -> int:

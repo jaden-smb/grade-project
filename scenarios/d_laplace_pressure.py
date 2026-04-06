@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""Scenario D — Laplace Pressure Test.
-
-Simulates droplets of five different radii and fits Δp vs 1/R to extract the
-surface tension σ, validating the Young-Laplace relation (Δp = σ/R).
-"""
 
 import sys
 import os

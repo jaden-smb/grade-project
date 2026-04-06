@@ -1,20 +1,10 @@
 #!/usr/bin/env python3
-"""Entry point for the LBM Shan-Chen two-phase simulation.
-
-Usage:
-  python main.py                  # run all four scenarios
-  python main.py --scenario a     # steady-state equilibrium
-  python main.py --scenario b     # G-ramp evaporation analogy
-  python main.py --scenario c     # coexistence curve sweep
-  python main.py --scenario d     # Laplace pressure test
-"""
 
 import argparse
 import importlib
 import sys
 import os
 
-# Make src/ importable for lbm package, and root importable for scenarios package
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 

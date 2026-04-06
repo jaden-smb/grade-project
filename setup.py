@@ -1,8 +1,3 @@
-"""
-Setup script for building the LBM Shan-Chen PyBind11 extension
-Alternative to CMake build method
-"""
-
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup, Extension
 import pybind11, sys
