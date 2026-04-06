@@ -11,10 +11,10 @@ ext_modules = [
     Pybind11Extension(
         "lbm_shan_chen",
         [
-            "cpp/lbm_shan_chen.cpp",
+            "cpp/src/lbm_shan_chen.cpp",
             "bindings/pybind_module.cpp"
         ],
-        include_dirs=["cpp"],
+        include_dirs=["cpp/include"],
         cxx_std=17,
         extra_compile_args=[] if sys.platform == "win32" else ["-O3", "-Wall", "-Wextra"],
     ),

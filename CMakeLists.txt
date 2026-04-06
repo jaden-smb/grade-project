@@ -36,11 +36,11 @@ else()
 endif()
 
 # Include directories
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/cpp)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/cpp/include)
 
 # C++ source files
 set(CPP_SOURCES
-    cpp/lbm_shan_chen.cpp
+    cpp/src/lbm_shan_chen.cpp
 )
 
 # PyBind11 module
@@ -58,8 +58,8 @@ endif()
 
 # Set output directory to match Python module location
 set_target_properties(lbm_shan_chen PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/lbm
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/lbm
 )
 
 # Print build information

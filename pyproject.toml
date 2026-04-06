@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "pybind11>=2.6"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "lbm-shan-chen"
+version = "1.0.0"
+description = "Two-Phase Lattice Boltzmann Method using the Shan-Chen pseudo-potential model"
+requires-python = ">=3.6"
+dependencies = [
+    "numpy>=1.19.0",
+    "matplotlib>=3.3.0",
+    "scipy>=1.5.0",
+]
+
+[project.scripts]
+lbm-simulate = "main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

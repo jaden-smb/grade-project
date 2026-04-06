@@ -1,4 +1,4 @@
-# Two-Phase Lattice Boltzmann Simulation - Shan-Chen Model
+# Two-Phase Lattice Boltzmann Simulation — Shan-Chen Model
 
 A complete implementation of a two-phase Lattice Boltzmann Method (LBM) simulation using the Shan-Chen pseudo-potential model for liquid-gas phase separation. The codebase uses Python for high-level orchestration and C++ (exposed through PyBind11) for all performance-critical operations.
 
@@ -13,16 +13,40 @@ This simulation demonstrates:
 ## Project Structure
 
 ```
-.
-├── cpp/                    # C++ implementation (performance-critical)
-│   ├── lbm_shan_chen.h    # LBM class header
-│   └── lbm_shan_chen.cpp  # LBM class implementation
-├── bindings/               # PyBind11 interface
-│   └── pybind_module.cpp  # Python bindings
-├── python/                 # Python scripts
-│   └── simulate.py        # Main simulation and visualization script
-├── CMakeLists.txt         # Build configuration
-└── README.md              # This file
+grade-project/
+├── src/
+│   └── lbm/                          # Python library package
+│       ├── __init__.py
+│       ├── core.py                   # LBMSimulator — Python wrapper around C++ extension
+│       ├── runner.py                 # Generic run_simulation() loop
+│       ├── metrics.py                # Droplet metrics (radius, circularity, aspect ratio…)
+│       ├── visualization.py          # Matplotlib plotting functions
+│       └── export/
+│           ├── obj.py                # Wavefront OBJ heightmap exporter
+│           └── blender_import.py     # Blender scripting helper
+├── scenarios/                        # One file per experiment
+│   ├── a_equilibrium.py
+│   ├── b_evaporation.py
+│   ├── c_coexistence_curve.py
+│   └── d_laplace_pressure.py
+├── cpp/
+│   ├── include/
+│   │   └── lbm_shan_chen.h           # LBM class header
+│   └── src/
+│       └── lbm_shan_chen.cpp         # LBM class implementation
+├── bindings/
+│   └── pybind_module.cpp             # PyBind11 interface
+├── tests/
+│   └── test_metrics.py               # Unit tests (no C++ extension required)
+├── docs/
+│   ├── IMPLEMENTATION.md             # Algorithm and implementation details
+│   └── QUICKSTART.md                 # Quick start guide
+├── main.py                           # Entry point: python main.py [--scenario a|b|c|d|all]
+├── CMakeLists.txt
+├── setup.py
+├── pyproject.toml
+├── requirements.txt
+└── README.md
 ```
 
 ## Mathematical Model
@@ -62,7 +86,7 @@ where `tau` is the relaxation time controlling viscosity.
 
 - **Density**: `rho = Σ f_i`
 - **Physical velocity**: `u = (Σ f_i * c_i + F/2) / rho`
-- **Equilibrium velocity**: `u_eq = u_phys + F/(2*rho)` = `u_bare + F/rho` (standard Shan-Chen velocity-shift, original 1993 formulation)
+- **Equilibrium velocity**: `u_eq = u_phys + F/(2*rho)` (standard Shan-Chen velocity-shift, original 1993 formulation)
 
 ## Build Instructions
 
@@ -76,196 +100,176 @@ where `tau` is the relaxation time controlling viscosity.
 
 3. **Python** 3.6+ with development headers
 
-4. **PyBind11**:
+4. **Python dependencies**:
    ```bash
-   pip install pybind11
-   ```
-
-5. **Python dependencies**:
-   ```bash
-   pip install numpy matplotlib
+   pip install -r requirements.txt
    ```
 
 ### Building the Extension
 
-1. **Create a build directory**:
-   ```bash
-   mkdir build
-   cd build
-   ```
-
-2. **Configure with CMake**:
-   ```bash
-   cmake ..
-   ```
-
-3. **Build**:
-   ```bash
-   cmake --build .
-   ```
-
-   On Linux/Mac, this creates `lbm_shan_chen.cpython-*.so`
-   On Windows, this creates `lbm_shan_chen.pyd`
-
-4. **Copy the module to the project root** (if needed):
-   ```bash
-   cp lbm_shan_chen*.so ..  # Linux/Mac
-   # or
-   copy lbm_shan_chen*.pyd ..  # Windows
-   ```
-
-### Alternative: Using setup.py (Optional)
-
-You can also create a `setup.py` for easier installation:
-
-```python
-from pybind11.setup_helpers import Pybind11Extension, build_ext
-from setuptools import setup, Extension
-
-ext_modules = [
-    Pybind11Extension(
-        "lbm_shan_chen",
-        ["cpp/lbm_shan_chen.cpp", "bindings/pybind_module.cpp"],
-        include_dirs=["cpp"],
-        cxx_std=17,
-    ),
-]
-
-setup(
-    name="lbm_shan_chen",
-    ext_modules=ext_modules,
-    cmdclass={"build_ext": build_ext},
-    zip_safe=False,
-)
+**Option 1 — CMake (recommended):**
+```bash
+cmake -B build
+cmake --build build
 ```
 
-Then build with:
+The compiled module is placed directly into `src/lbm/` by CMake, so no manual copying is needed.
+
+**Option 2 — setuptools:**
 ```bash
-python setup.py build_ext --inplace
+python setup.py build_ext --inplace --build-lib src/lbm
+```
+
+After building, verify the extension is in place:
+```
+src/lbm/lbm_shan_chen*.so   # Linux / macOS
+src/lbm/lbm_shan_chen*.pyd  # Windows
 ```
 
 ## Running the Simulation
 
-1. **Navigate to the project directory**:
-   ```bash
-   cd /path/to/grade-project-smb
-   ```
+```bash
+# Run all four scenarios sequentially
+python main.py
 
-2. **Run the simulation**:
-   ```bash
-   python python/simulate.py
-   ```
+# Run a single scenario
+python main.py --scenario a   # Steady-state equilibrium
+python main.py --scenario b   # G-ramp evaporation analogy
+python main.py --scenario c   # Coexistence curve sweep
+python main.py --scenario d   # Laplace pressure test
 
-The script runs four scenarios sequentially:
+# Each scenario file is also independently runnable
+python scenarios/a_equilibrium.py
+```
 
-- **Scenario A** (`output/scenario_a_equilibrium/`): Steady-state droplet equilibrium — G=-5.0 fixed, 5000 steps. Demonstrates spontaneous phase separation.
-- **Scenario B** (`output/scenario_b_evaporation/`): G-ramp evaporation analogy — G ramped from -5.0 to -3.7 (past critical G_c ≈ -4.0), 8000 steps. Droplet dissolves as cohesion weakens past the critical point.
-- **Scenario C** (`output/scenario_c_coexistence/`): Parameter sweep — five G values (-4.0 to -6.0), plots coexistence curve of liquid and gas equilibrium densities.
-- **Scenario D** (`output/scenario_d_laplace/`): Laplace pressure test — five droplet radii (20–60 lu), fits Δp vs 1/R to extract surface tension σ using the full Shan-Chen EoS.
+### The Four Scenarios
+
+| Scenario | Output directory | Description |
+|---|---|---|
+| A | `output/scenario_a_equilibrium/` | G=-5.0, 5000 steps — steady-state droplet; also exports OBJ sequence |
+| B | `output/scenario_b_evaporation/` | G ramped -5.0→-3.7, 8000 steps — droplet dissolves past G_c ≈ -4.0 |
+| C | `output/scenario_c_coexistence/` | Five G values (-4.0 to -6.0), plots equilibrium liquid/gas densities vs G |
+| D | `output/scenario_d_laplace/` | Five radii (20–60 lu), fits Δp vs 1/R to extract surface tension σ |
 
 ## Parameter Tuning
 
-Edit the `main()` function in `python/simulate.py` to modify simulation parameters:
+Each scenario has explicit parameters at the top of its file in `scenarios/`. Common parameters:
 
 ### Grid Size (`nx`, `ny`)
-- **Larger grids** (e.g., 400x400): More detail, slower computation
-- **Smaller grids** (e.g., 100x100): Faster, less detail
-- **Recommended**: 200x200 for good balance
+- **Larger grids** (e.g., 400×400): More detail, slower computation
+- **Smaller grids** (e.g., 100×100): Faster, less detail
+- **Recommended**: 200×200 for a good balance
 
 ### Relaxation Time (`tau`)
-- **Controls viscosity**: `nu = (tau - 0.5) / 3`
+- **Controls viscosity**: `ν = (tau - 0.5) / 3`
 - **Range**: 0.5 < tau < 2.0
 - **Lower tau** (e.g., 0.6): Higher viscosity, more stable, slower dynamics
 - **Higher tau** (e.g., 1.5): Lower viscosity, faster dynamics, may be unstable
 - **Recommended**: 1.0
 
 ### Cohesion Parameter (`G`)
-- **MUST be negative** for liquid-gas phase separation
+- **Must be negative** for liquid-gas phase separation
 - **Critical value**: G_c ≈ -4 (below this, phase separation occurs)
-- **Range**: -4.5 to -7.0
 - **More negative** (e.g., -6.5): Stronger phase separation, sharper interface
 - **Less negative** (e.g., -4.5): Weaker phase separation, diffuse interface
 - **Too negative** (e.g., < -8): Causes numerical instability and blow-up
-- **Recommended**: -5.5
+- **Recommended**: -5.0
 
 ### Initial Densities (`rho_liquid`, `rho_gas`)
-- **rho_liquid**: Density of the liquid phase (typically 1.5 - 3.0)
-- **rho_gas**: Density of the gas phase (typically 0.05 - 0.2)
+- **rho_liquid**: Density of the liquid phase (typically 1.5–3.0)
+- **rho_gas**: Density of the gas phase (typically 0.05–0.2)
 - **Larger contrast**: More pronounced phase separation
 - **Recommended**: rho_liquid=2.0, rho_gas=0.1
 
 ### Droplet Parameters
-- **center_x, center_y**: Droplet center position (None = grid center)
+- **center_x, center_y**: Droplet center position (`None` = grid center)
 - **radius**: Initial droplet radius in lattice units
-- **Larger radius**: Bigger initial droplet
-- **Recommended**: radius = 30-50 for 200x200 grid
-
-### Number of Steps (`num_steps`)
-- **More steps**: Longer simulation time, more evolution
-- **Recommended**: 500-2000 steps depending on desired evolution
+- **Recommended**: radius = 30–50 for a 200×200 grid
 
 ## Output Files
 
-Output is organized by scenario:
+Output is organized by scenario under `output/`:
 
-- `output/scenario_a_equilibrium/` — steady-state droplet plots and animations
-- `output/scenario_b_evaporation/` — evaporation ramp plots and animations
-- `output/scenario_c_coexistence/` — coexistence curve plot (`coexistence_curve.png`)
+Within each scenario directory (A and B):
+- `density_initial.png` / `density_initial_surface.png` — initial state heatmap and 3D view
+- `density_step_*.png` / `density_step_*_surface.png` — intermediate snapshots
+- `density_final.png` / `density_final_surface.png` — final state
+- `density_evolution.gif` / `density_evolution_surface.gif` — animations
+- `metrics.png` — radius, mass, max density, aspect ratio, and circularity over time
+- `density_profile.png` — horizontal cross-section with tanh interface fit
+- `velocity_field.png` — spurious currents quiver overlay
 
-Within each scenario directory:
-- `density_initial.png`: Initial state heatmap
-- `density_initial_surface.png`: Initial state surface view
-- `density_step_*.png`: Intermediate heatmaps
-- `density_step_*_surface.png`: Intermediate surface views
-- `density_final.png`: Final state heatmap
-- `density_final_surface.png`: Final state surface view
-- `density_evolution.gif`: 2D animated evolution
-- `density_evolution_surface.gif`: Surface view animation
-- `metrics.png`: Radius, mass, max density, aspect ratio, and circularity over time
+Scenario A also produces:
+- `obj_sequence/frame_NNNNN.obj` — heightmap mesh per animation frame
+- `obj_sequence/frame_NNNNN.mtl` — material referencing the texture
+- `obj_sequence/frame_NNNNN_texture.png` — viridis-mapped density texture
 
-## Code Explanation
+## OBJ Heightmap Export
 
-### C++ Implementation (`cpp/lbm_shan_chen.cpp`)
+The density field can be exported as a Wavefront OBJ mesh for import into Blender, Maya, or any application that reads OBJ. The Z coordinate of each vertex is proportional to the local density (`z = rho * z_scale`).
 
-The core LBM class implements:
+### Automatic export (Scenario A)
 
-1. **Initialization**: Sets up grid, allocates memory, initializes fields
-2. **Droplet Initialization**: Creates a circular liquid region in gas
-3. **Time Step** (`step()`):
-   - Computes equilibrium distribution
-   - Calculates Shan-Chen force
-   - Applies BGK collision
-   - Streams distribution functions
-   - Updates macroscopic variables
+OBJ export runs automatically when running Scenario A. The output goes to `output/scenario_a_equilibrium/obj_sequence/`.
 
-### PyBind11 Interface (`bindings/pybind_module.cpp`)
+### Manual export from saved `.npy` files
 
-Exposes the C++ class to Python with:
-- Constructor with all parameters
-- `initialize_droplet()` method
-- `step()` method for time evolution
-- Accessors for density and velocity fields
-- Grid dimension properties
+```bash
+# Single frame
+python src/lbm/export/obj.py path/to/density.npy -o obj_output
 
-### Python Script (`python/simulate.py`)
+# Directory of frames (exports as numbered sequence)
+python src/lbm/export/obj.py path/to/npy_dir/ -o obj_output
+```
 
-Provides:
-- Parameter configuration
-- Simulation loop
-- Visualization using matplotlib
-- Animation generation
-- Statistics and analysis
+Options:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-o / --output` | `obj_output` | Output directory |
+| `--z-scale` | `50.0` | Vertical exaggeration factor |
+| `--subsample` | `1` | Take every Nth grid point (reduces file size) |
+| `--colormap` | `viridis` | Any matplotlib colormap name |
+| `--color-mode` | `texture` | `texture` = UV-mapped PNG (Blender/Maya); `vertex` = per-vertex `v x y z r g b` |
+
+### Importing into Blender
+
+1. **File → Import → Wavefront (.obj)** and select any `frame_NNNNN.obj`
+2. The mesh imports as a colored heightmap. The texture is automatically linked via the `.mtl` file.
+3. To animate, use `src/lbm/export/blender_import.py` — edit the `SEQ_DIR` path and run it from Blender's scripting workspace.
+
+## Code Organization
+
+| Layer | Location | Responsibility |
+|---|---|---|
+| C++ engine | `cpp/src/lbm_shan_chen.cpp` | D2Q9 LBM: force, collision, streaming, macroscopic update |
+| PyBind11 bridge | `bindings/pybind_module.cpp` | Exposes `LBMShanChen` class to Python |
+| Python wrapper | `src/lbm/core.py` | `LBMSimulator` — single import point, build-error guidance |
+| Simulation loop | `src/lbm/runner.py` | Generic `run_simulation()` with plotting and animation |
+| Analysis | `src/lbm/metrics.py` | Droplet radius, circularity, aspect ratio via scipy morphology |
+| Plotting | `src/lbm/visualization.py` | Heatmaps, 3D surfaces, metric plots, density profiles, velocity fields |
+| 3D export | `src/lbm/export/obj.py` | Wavefront OBJ heightmap export (texture or vertex color) |
+| Experiments | `scenarios/` | One `run()` function per scenario, independently executable |
+
+## Running Tests
+
+```bash
+python -m pytest tests/
+# or directly
+python tests/test_metrics.py
+```
+
+The tests in `tests/test_metrics.py` validate the droplet metrics (radius, circularity, aspect ratio, mass conservation) using synthetic density arrays and do not require the C++ extension to be built.
 
 ## Performance Considerations
 
 - **Memory layout**: Row-major order for cache efficiency
 - **Streaming buffer**: `f_tmp_` pre-allocated in constructor — no per-step heap allocation
-- **Optimized loops**: Direct array access, minimal function call overhead
-- **Compilation**: Use `-O3` optimization flag (included in CMakeLists.txt)
-- **MLUPS metric**: Throughput is reported as Million Lattice Updates Per Second (MLUPS) at the end of each simulation run. A typical 200×200 grid achieves 20–100 MLUPS depending on hardware.
+- **Compilation**: `-O3` optimization flag (included in CMakeLists.txt)
+- **MLUPS metric**: Throughput is reported as Million Lattice Updates Per Second at the end of each run. A typical 200×200 grid achieves 20–100 MLUPS depending on hardware.
 
 For larger simulations, consider:
-- Using OpenMP for parallelization
+- OpenMP parallelization of the inner loops
 - GPU acceleration (CUDA/OpenCL)
 - Adaptive mesh refinement
 
@@ -276,72 +280,56 @@ The project proposal listed a D3Q19/D3Q27 three-dimensional extension as a condi
 ### Memory requirements
 
 A D3Q19 grid of 100³ cells requires:
-- **Distribution functions** `f`: 19 × 10⁶ doubles = ~145 MB
-- **Density** `ρ`: 1 × 10⁶ doubles = ~8 MB
-- **Velocity** `u` (3 components): 3 × 10⁶ doubles = ~24 MB
-- **Force** `F` (3 components): 3 × 10⁶ doubles = ~24 MB
-- **Streaming buffer** `f_tmp`: same as `f` = ~145 MB
+- **Distribution functions** `f`: 19 × 10⁶ doubles ≈ 145 MB
+- **Density, velocity, force**: ≈ 56 MB combined
+- **Streaming buffer** `f_tmp`: ≈ 145 MB
 
 **Total ≈ 350 MB** for a single simulation instance, exceeding the memory comfortably available for interactive work on the target hardware.
 
 ### Compute time
 
-Each streaming step in 3D touches 19 neighbors per cell with periodic wrapping in three dimensions. Empirical scaling from the D2Q9 results (≈50 MLUPS on the development machine) predicts:
-- D3Q19 at 100³: roughly 20–50× slower per step than D2Q9 at comparable resolution.
-- A 3000-step run at 100³ would take an estimated **30–60 minutes** per scenario, making iterative parameter tuning impractical.
+Empirical scaling from the D2Q9 results predicts a D3Q19 run at 100³ would be 20–50× slower per step. A 3000-step run would take an estimated **30–60 minutes** per scenario, making iterative parameter tuning impractical.
 
 ### Scope decision
 
-The 2D prototype fully validates the core physics targeted by the thesis:
-- Spontaneous liquid-gas phase separation
-- Droplet equilibrium and circularity
-- Young-Laplace pressure scaling (surface tension measurement)
-- G-ramp evaporation analogy
-- Coexistence curve
-
-The architecture is structured so that a D3Q19 extension would require only a new C++ class with the 19-velocity set — the Python driver, PyBind11 bindings, and visualisation layer would need minimal changes. This is documented here as a clear future-work path rather than a limitation of the method.
+The 2D prototype fully validates the core physics: spontaneous phase separation, droplet equilibrium, Young-Laplace pressure scaling, G-ramp evaporation, and the coexistence curve. A D3Q19 extension would require only a new C++ class — the Python driver, bindings, and visualization layer would need minimal changes. This is documented as a clear future-work path rather than a limitation of the method.
 
 ## Known Limitations
 
-1. **D2Q9 only** — This is a 2D simulation. The surface-view plots are 3D surface renderings of the 2D density field, not a volumetric 3D (D3Q19/D3Q27) simulation. See the section above for the rationale.
-2. **Lattice anisotropy** — At intermediate G values the droplet can appear slightly square due to the lattice geometry. The circularity metric (reported in `metrics.png` and animation titles) quantifies this artifact (1.0 = perfect circle, ~0.785 = square).
+1. **D2Q9 only** — The surface-view plots are 3D surface renderings of a 2D density field, not a volumetric 3D simulation. See the section above for the rationale.
+2. **Lattice anisotropy** — At intermediate G values the droplet can appear slightly square due to the lattice geometry. The circularity metric quantifies this artifact (1.0 = perfect circle, ≈0.785 = square).
 3. **BGK accuracy** — The single-relaxation-time BGK operator limits accuracy at high density ratios. A multiple-relaxation-time (MRT) operator would improve stability.
-4. **Mass drift** — With the velocity clamp threshold at u²=0.04 (Mach ~0.2), a typical 5000-step Scenario A run shows mass drift well under 1%. Higher |G| values or longer runs may exhibit slightly larger drift due to residual clamping near the interface.
+4. **Mass drift** — With the velocity clamp threshold at u²=0.04 (Mach ≈0.2), a typical 5000-step run shows mass drift well under 1%.
 
 ## Troubleshooting
 
-### Import Error
-If you get `ImportError: No module named 'lbm_shan_chen'`:
-- Ensure the module is built and in the project root
+**`ImportError: No module named 'lbm_shan_chen'`**
+- Build the C++ extension first (see Build Instructions above)
+- Ensure the compiled `.so`/`.pyd` is inside `src/lbm/`
 - Check that the Python version matches the compiled module
-- Verify PyBind11 is installed correctly
 
-### Compilation Errors
-- Ensure C++17 support is enabled
-- Check that PyBind11 headers are found
-- Verify Python development headers are installed
+**Compilation errors**
+- Ensure C++17 support is enabled in your compiler
+- Verify PyBind11 and Python development headers are installed
 
-### Unstable Simulation
+**Unstable simulation**
 - Reduce `tau` (increase viscosity)
 - Make `G` less negative
-- Reduce density contrast
-- Use smaller time steps (run more steps with smaller changes)
+- Reduce the density contrast (`rho_liquid` / `rho_gas` ratio)
 
-### Poor Phase Separation
-- Make `G` more negative
+**Poor phase separation**
+- Make `G` more negative (e.g., -5.5 or -6.0)
 - Increase density contrast
 - Run for more steps
-- Check initial conditions
 
 ## References
 
 1. Shan, X., & Chen, H. (1993). Lattice Boltzmann model for simulating flows with multiple phases and components. *Physical Review E*, 47(3), 1815.
 
-2. Chen, S., & Doolen, G. D. (1998). Lattice Boltzmann method for fluid flows. *Annual Review of Fluid Mechanics*, 30(1), 329-364.
+2. Chen, S., & Doolen, G. D. (1998). Lattice Boltzmann method for fluid flows. *Annual Review of Fluid Mechanics*, 30(1), 329–364.
 
 3. Krüger, T., et al. (2017). *The Lattice Boltzmann Method: Principles and Practice*. Springer.
 
 ## License
 
 This code is provided as-is for educational and research purposes.
-

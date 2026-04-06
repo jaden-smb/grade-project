@@ -4,11 +4,8 @@
 #include <vector>
 #include <memory>
 
-// D2Q9 LBM with Shan-Chen pseudo-potential for liquid-gas phase separation.
-// Uses BGK collision and psi(rho) = 1 - exp(-1.5*rho).
 class LBMShanChen {
 public:
-    // tau: relaxation time (>0.5), G: cohesion (~-4.5 to -7, critical ~-4)
     LBMShanChen(int nx, int ny, double tau, double G, 
                 double rho_liquid, double rho_gas);
     
@@ -64,4 +61,4 @@ private:
     int clamp_count_ = 0;
 };
 
-#endif // LBM_SHAN_CHEN_H
+#endif

@@ -47,12 +47,6 @@ void LBMShanChen::initializeDroplet(int center_x, int center_y, double radius) {
 }
 
 void LBMShanChen::step() {
-    // Standard Shan-Chen time-step sequence:
-    // 1. Force from current density (set by previous updateMacroscopic)
-    // 2. Equilibrium with force-shifted velocity
-    // 3. BGK collision
-    // 4. Streaming (propagation)
-    // 5. Update density and physical velocity from post-streaming distributions
     computeShanChenForce();
     computeEquilibrium();
     collide();
@@ -72,7 +66,6 @@ void LBMShanChen::computeShanChenForce() {
             double Fx = 0.0, Fy = 0.0;
             
             for (int q = 0; q < Q; ++q) {
-                // periodic neighbor
                 int i_nb = (i + cx_[q] + nx_) % nx_;
                 int j_nb = (j + cy_[q] + ny_) % ny_;
                 double psi_nb = psi(rho_[index(i_nb, j_nb)]);
@@ -87,10 +80,7 @@ void LBMShanChen::computeShanChenForce() {
 }
 
 void LBMShanChen::computeEquilibrium() {
-    // Standard Shan-Chen velocity-shift: u_eq = u_phys + F/(2*rho)
-    // Since ux_[] already stores u_phys = (Σf·c + F/2)/rho (from updateMacroscopic),
-    // adding another F/(2*rho) gives u_eq = u_bare + F/rho, the standard shift.
-    const double u_max_sq = 0.04;  // Mach ~0.2 safety cap
+    const double u_max_sq = 0.04;
 
     for (int j = 0; j < ny_; ++j) {
         for (int i = 0; i < nx_; ++i) {
@@ -98,7 +88,6 @@ void LBMShanChen::computeEquilibrium() {
             double rho = rho_[idx];
             double ux, uy;
             if (rho > 1e-10) {
-                // Equilibrium velocity = u_phys + F/(2*rho)
                 ux = ux_[idx] + 0.5 * Fx_[idx] / rho;
                 uy = uy_[idx] + 0.5 * Fy_[idx] / rho;
             } else {
@@ -119,7 +108,6 @@ void LBMShanChen::computeEquilibrium() {
                 f_eq_[f_index(i, j, q)] = w_[q] * rho * (1.0 + 3.0*cu + 4.5*cu*cu - 1.5*u_sq);
             }
 
-            // Mass conservation: rescale f_eq so sum == rho exactly.
             double feq_sum = 0.0;
             for (int q = 0; q < Q; ++q)
                 feq_sum += f_eq_[f_index(i, j, q)];

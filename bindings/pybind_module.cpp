@@ -1,14 +1,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-#include "../cpp/lbm_shan_chen.h"
+#include "../cpp/include/lbm_shan_chen.h"
 
 namespace py = pybind11;
 
-/**
- * PyBind11 interface for LBMShanChen class
- * Exposes the C++ LBM implementation to Python
- */
 PYBIND11_MODULE(lbm_shan_chen, m) {
     m.doc() = "Two-Phase Lattice Boltzmann Method using Shan-Chen Model";
     
