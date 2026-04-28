@@ -28,7 +28,7 @@ def test_perfect_circle_metrics():
 
 def test_empty_field_returns_zero_radius():
     rho = np.full((50, 50), 0.1)
-    total_mass, radius, max_density, aspect_ratio, circularity = compute_metrics(rho, threshold=1.0)
+    total_mass, radius, max_density, aspect_ratio, circularity = compute_metrics(rho, 1.0)
 
     assert radius == 0.0
     assert circularity == 0.0
@@ -38,7 +38,7 @@ def test_empty_field_returns_zero_radius():
 def test_mass_conservation():
     rng = np.random.default_rng(42)
     rho = rng.uniform(0.05, 2.5, size=(80, 80))
-    total_mass, *_ = compute_metrics(rho, threshold=1.0)
+    total_mass, *_ = compute_metrics(rho, 1.0)
     assert abs(total_mass - float(rho.sum())) < 1e-6
 
 
@@ -49,7 +49,7 @@ def test_aspect_ratio_circular():
     mask = (xs - 50)**2 + (ys - 50)**2 <= 25**2
     rho[mask] = 2.0
 
-    _, _, _, aspect_ratio, _ = compute_metrics(rho, threshold=1.0)
+    _, _, _, aspect_ratio, _ = compute_metrics(rho, 1.0)
     assert aspect_ratio > 0.9, f"aspect ratio {aspect_ratio:.3f} should be close to 1 for a circle"
 
 

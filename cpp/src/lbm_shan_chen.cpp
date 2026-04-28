@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <cstring>
 
-LBMShanChen::LBMShanChen(int nx, int ny, double tau, double G, 
+LBMShanChen::LBMShanChen(int nx, int ny, double tau, double G,
                          double rho_liquid, double rho_gas)
-    : nx_(nx), ny_(ny), tau_(tau), G_(G), 
-      rho_liquid_(rho_liquid), rho_gas_(rho_gas) {
+    : nx_(nx), ny_(ny), tau_(tau), G_(G),
+      rho_liquid_(rho_liquid), rho_gas_(rho_gas),
+      eos_type_(EOS_ORIGINAL_SC), rho0_(1.0/1.5),
+      T_eos_(0.7 * 0.09433), a_cs_(0.5), b_cs_(2.0) {
     
     n_total_ = nx_ * ny_;
     
@@ -55,7 +57,22 @@ void LBMShanChen::step() {
 }
 
 double LBMShanChen::psi(double rho) const {
-    return 1.0 - std::exp(-1.5 * rho);
+    if (eos_type_ == EOS_ORIGINAL_SC) {
+        return 1.0 - std::exp(-rho / rho0_);
+    }
+
+    // EOS_CARNAHAN_STARLING: Yuan-Schaefer (2006) formulation
+    // psi = sqrt(2*(p_CS - rho*cs2) / (G*cs2))
+    // p_CS = rho*T*f(eta) - a*rho^2,  eta = b*rho/4,
+    //        f(eta) = (1+eta+eta^2-eta^3)/(1-eta)^3
+    constexpr double cs2 = 1.0 / 3.0;
+    double eta = b_cs_ * rho / 4.0;
+    if (eta >= 0.99) eta = 0.99;  // stay below packing singularity
+    const double d  = 1.0 - eta;
+    const double f_eta = (1.0 + eta + eta*eta - eta*eta*eta) / (d*d*d);
+    const double p_cs  = rho * T_eos_ * f_eta - a_cs_ * rho * rho;
+    const double arg   = 2.0 * (p_cs - rho * cs2) / (G_ * cs2);
+    return (arg > 0.0) ? std::sqrt(arg) : 0.0;
 }
 
 void LBMShanChen::computeShanChenForce() {

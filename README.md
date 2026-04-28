@@ -27,8 +27,10 @@ grade-project/
 ├── scenarios/                        # One file per experiment
 │   ├── a_equilibrium.py
 │   ├── b_evaporation.py
-│   ├── c_coexistence_curve.py
-│   └── d_laplace_pressure.py
+│   ├── c_coexistence_curve.py        # + Maxwell construction overlay
+│   ├── d_laplace_pressure.py
+│   ├── e_eos_comparison.py           # SC vs Carnahan-Starling EoS
+│   └── f_parameter_study.py          # tau and rho_liquid sweeps
 ├── cpp/
 │   ├── include/
 │   │   └── lbm_shan_chen.h           # LBM class header
@@ -37,7 +39,8 @@ grade-project/
 ├── bindings/
 │   └── pybind_module.cpp             # PyBind11 interface
 ├── tests/
-│   └── test_metrics.py               # Unit tests (no C++ extension required)
+│   ├── test_metrics.py               # Unit tests (no C++ extension required)
+│   └── test_physics.py               # Physics-level tests (requires built extension)
 ├── docs/
 │   ├── IMPLEMENTATION.md             # Algorithm and implementation details
 │   └── QUICKSTART.md                 # Quick start guide
@@ -129,27 +132,31 @@ src/lbm/lbm_shan_chen*.pyd  # Windows
 ## Running the Simulation
 
 ```bash
-# Run all four scenarios sequentially
+# Run all scenarios sequentially
 python main.py
 
 # Run a single scenario
 python main.py --scenario a   # Steady-state equilibrium
 python main.py --scenario b   # G-ramp evaporation analogy
-python main.py --scenario c   # Coexistence curve sweep
+python main.py --scenario c   # Coexistence curve + Maxwell construction
 python main.py --scenario d   # Laplace pressure test
+python main.py --scenario e   # EoS comparison (SC vs Carnahan-Starling)
+python main.py --scenario f   # Systematic parameter study
 
 # Each scenario file is also independently runnable
 python scenarios/a_equilibrium.py
 ```
 
-### The Four Scenarios
+### The Six Scenarios
 
 | Scenario | Output directory | Description |
 |---|---|---|
 | A | `output/scenario_a_equilibrium/` | G=-5.0, 5000 steps — steady-state droplet; also exports OBJ sequence |
 | B | `output/scenario_b_evaporation/` | G ramped -5.0→-3.7, 8000 steps — droplet dissolves past G_c ≈ -4.0 |
-| C | `output/scenario_c_coexistence/` | Five G values (-4.0 to -6.0), plots equilibrium liquid/gas densities vs G |
+| C | `output/scenario_c_coexistence/` | Five G values (-4.0 to -6.0), plots simulated coexistence curve overlaid with Maxwell construction |
 | D | `output/scenario_d_laplace/` | Five radii (20–60 lu), fits Δp vs 1/R to extract surface tension σ |
+| E | `output/scenario_e_eos_comparison/` | Compares original SC EoS vs Carnahan-Starling (Yuan-Schaefer 2006) — coexistence curves and density contrast |
+| F | `output/scenario_f_parameter_study/` | Sweeps τ ∈ {0.7,0.8,1.0,1.2,1.5} and ρ_liq ∈ {1.5,2.0,2.5,3.0}; reports contrast, radius, spurious velocity, MLUPS |
 
 ## Parameter Tuning
 
@@ -297,9 +304,11 @@ The 2D prototype fully validates the core physics: spontaneous phase separation,
 ## Known Limitations
 
 1. **D2Q9 only** — The surface-view plots are 3D surface renderings of a 2D density field, not a volumetric 3D simulation. See the section above for the rationale.
-2. **Lattice anisotropy** — At intermediate G values the droplet can appear slightly square due to the lattice geometry. The circularity metric quantifies this artifact (1.0 = perfect circle, ≈0.785 = square).
-3. **BGK accuracy** — The single-relaxation-time BGK operator limits accuracy at high density ratios. A multiple-relaxation-time (MRT) operator would improve stability.
-4. **Mass drift** — With the velocity clamp threshold at u²=0.04 (Mach ≈0.2), a typical 5000-step run shows mass drift well under 1%.
+2. **Thermodynamic inconsistency (original SC)** — The default `eos_type=0` pseudopotential ψ = 1 − exp(−1.5ρ) does not satisfy the Maxwell equal-area rule exactly, so simulated coexistence densities deviate from the theoretical prediction. Scenario C quantifies this deviation. Switching to `eos_type=1` (Carnahan-Starling, Scenario E) largely corrects it at the cost of lower achievable density contrast.
+3. **Lattice anisotropy** — At intermediate G values the droplet can appear slightly square due to the lattice geometry. The circularity metric quantifies this artifact (1.0 = perfect circle, ≈0.785 = square).
+4. **BGK accuracy** — The single-relaxation-time BGK operator limits accuracy at high density ratios. A multiple-relaxation-time (MRT) operator would improve stability.
+5. **Mass drift** — With the velocity clamp threshold at u²=0.04 (Mach ≈0.2), a typical 5000-step run shows mass drift well under 1%.
+6. **Velocity-shift forcing** — The Shan-Chen 1993 velocity-shift method is used rather than the Guo et al. (2002) EDM scheme. This produces slightly larger spurious currents at the interface but is simpler and second-order accurate in time.
 
 ## Troubleshooting
 
@@ -328,7 +337,11 @@ The 2D prototype fully validates the core physics: spontaneous phase separation,
 
 2. Chen, S., & Doolen, G. D. (1998). Lattice Boltzmann method for fluid flows. *Annual Review of Fluid Mechanics*, 30(1), 329–364.
 
-3. Krüger, T., et al. (2017). *The Lattice Boltzmann Method: Principles and Practice*. Springer.
+3. Yuan, P., & Schaefer, L. (2006). Equations of state in a lattice Boltzmann model. *Physics of Fluids*, 18(4), 042101.
+
+4. Guo, Z., Zheng, C., & Shi, B. (2002). Discrete lattice effects on the forcing term in the lattice Boltzmann method. *Physical Review E*, 65(4), 046308.
+
+5. Krüger, T., et al. (2017). *The Lattice Boltzmann Method: Principles and Practice*. Springer.
 
 ## License
 

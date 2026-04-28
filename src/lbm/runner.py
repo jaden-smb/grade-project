@@ -221,7 +221,11 @@ def run_simulation(nx=300, ny=300, tau=1.0, G=-5.0, G_final=None,
     print("=" * 60)
     print(f"Initial density range: [{rho_initial.min():.3f}, {rho_initial.max():.3f}]")
     print(f"Final density range:   [{rho_final.min():.3f}, {rho_final.max():.3f}]")
-    print(f"Density contrast: {rho_final.max() / rho_final.min():.2f}")
+    equil_rho_liq = float(rho_final.max())
+    equil_rho_gas = float(rho_final.min())
+    print(f"Equil. ρ_liq (max):    {equil_rho_liq:.4f}")
+    print(f"Equil. ρ_gas (min):    {equil_rho_gas:.4f}")
+    print(f"Density contrast (ρ_liq/ρ_gas): {equil_rho_liq / equil_rho_gas:.3f}")
     initial_mass = float(rho_initial.sum())
     final_mass = float(rho_final.sum())
     mass_drift_pct = 100.0 * (final_mass - initial_mass) / initial_mass

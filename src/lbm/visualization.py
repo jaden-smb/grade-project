@@ -145,7 +145,19 @@ def plot_velocity_field(lbm, nx, ny, output_dir):
 
     speed = np.sqrt(ux_2d**2 + uy_2d**2)
     max_speed = float(speed.max())
-    print(f"  Max spurious velocity magnitude: {max_speed:.6f} lu/step")
+    print(f"  Max spurious velocity magnitude:  {max_speed:.6f} lu/step")
+
+    # Mean spurious velocity in the interface region (20–80 % of density range),
+    # which is a more physically meaningful indicator than the global maximum.
+    rho_min, rho_max = float(rho_2d.min()), float(rho_2d.max())
+    rho_range = rho_max - rho_min
+    if rho_range > 1e-6:
+        lo = rho_min + 0.20 * rho_range
+        hi = rho_min + 0.80 * rho_range
+        interface_mask = (rho_2d > lo) & (rho_2d < hi)
+        if interface_mask.any():
+            mean_speed = float(speed[interface_mask].mean())
+            print(f"  Mean spurious velocity (interface): {mean_speed:.6f} lu/step")
 
     step = 8
     xs = np.arange(0, nx, step)

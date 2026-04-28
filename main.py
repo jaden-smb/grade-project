@@ -9,10 +9,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 
 SCENARIOS = {
-    "a": ("scenarios.a_equilibrium",     "Scenario A — Steady-State Droplet Equilibrium"),
-    "b": ("scenarios.b_evaporation",     "Scenario B — G-Ramp Evaporation Analogy"),
-    "c": ("scenarios.c_coexistence_curve", "Scenario C — Parameter Sweep for Coexistence Curve"),
-    "d": ("scenarios.d_laplace_pressure", "Scenario D — Laplace Pressure Test"),
+    "a": ("scenarios.a_equilibrium",       "Scenario A — Steady-State Droplet Equilibrium"),
+    "b": ("scenarios.b_evaporation",       "Scenario B — G-Ramp Evaporation Analogy"),
+    "c": ("scenarios.c_coexistence_curve", "Scenario C — Coexistence Curve + Maxwell Construction"),
+    "d": ("scenarios.d_laplace_pressure",  "Scenario D — Laplace Pressure Test"),
+    "e": ("scenarios.e_eos_comparison",    "Scenario E — EoS Comparison (SC vs. Carnahan-Starling)"),
+    "f": ("scenarios.f_parameter_study",   "Scenario F — Systematic Parameter Study"),
 }
 
 
@@ -26,7 +28,7 @@ def main():
         "--scenario", "-s",
         choices=[*SCENARIOS.keys(), "all"],
         default="all",
-        metavar="{a,b,c,d,all}",
+        metavar="{a,b,c,d,e,f,all}",
         help="Scenario to run (default: all)",
     )
     args = parser.parse_args()

@@ -49,6 +49,25 @@ PYBIND11_MODULE(lbm_shan_chen, m) {
              "Reset the velocity clamp counter")
 
         .def_property_readonly("ny", &LBMShanChen::getNy,
-                               "Grid height");
+                               "Grid height")
+
+        // EoS control (default eos_type=0 preserves original SC behaviour)
+        .def("set_eos_type", &LBMShanChen::setEosType,
+             "Select pseudopotential EoS: 0=original Shan-Chen, 1=Carnahan-Starling",
+             py::arg("eos_type"))
+        .def_property_readonly("eos_type", &LBMShanChen::getEosType,
+                               "Active EoS selector (0=SC, 1=CS)")
+
+        .def("set_temperature", &LBMShanChen::setTemperature,
+             "Set temperature for non-ideal EoS (Carnahan-Starling); T < Tc = 0.09433",
+             py::arg("T"))
+        .def_property_readonly("temperature", &LBMShanChen::getTemperature,
+                               "Temperature parameter for non-ideal EoS")
+
+        .def("set_rho0", &LBMShanChen::setRho0,
+             "Set rho0 for original SC: psi = 1 - exp(-rho/rho0); default 1/1.5",
+             py::arg("rho0"))
+        .def_property_readonly("rho0", &LBMShanChen::getRho0,
+                               "rho0 parameter for original SC EoS");
 }
 
