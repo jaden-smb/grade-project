@@ -71,6 +71,18 @@ def plot_metrics(metrics_history, output_dir):
     axes[0, 1].set_title('Total Mass - conservation check', fontweight='bold')
     axes[0, 1].set_xlabel('Step'); axes[0, 1].set_ylabel('Mass')
 
+    if masses:
+        m0 = masses[0]
+        axes[0, 1].set_ylim(0, 1.1 * m0)
+        axes[0, 1].axhline(m0, color='k', linestyle='--', linewidth=0.8,
+                        alpha=0.5, label=f'initial = {m0:.2f}')
+        # Quantify the drift in the title so the committee sees the number
+        drift_pct = 100.0 * (masses[-1] - m0) / m0
+        axes[0, 1].set_title(
+            f'Total Mass — drift = {drift_pct:+.2e} %',
+            fontweight='bold')
+        axes[0, 1].legend(fontsize=9, loc='lower right')
+
     axes[1, 0].plot(steps, max_dens, 'r-', linewidth=1.5)
     axes[1, 0].set_title('Max Density - evaporation indicator', fontweight='bold')
     axes[1, 0].set_xlabel('Step'); axes[1, 0].set_ylabel('Density')
