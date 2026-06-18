@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""Scenario F — Systematic Parameter Study.
-
-Documents simulation behaviour under different parameter choices
-(thesis objective: "Documentación del comportamiento bajo diferentes parámetros").
-
-Two sweeps:
-  1. tau sweep at fixed G=-5.0, varying tau in {0.7, 0.8, 1.0, 1.2, 1.5}
-     Measures: equilibrium density contrast, effective droplet radius,
-               max spurious velocity, MLUPS throughput.
-
-  2. Initial density contrast sweep at fixed G=-5.0, tau=1.0:
-     rho_liquid in {1.5, 2.0, 2.5, 3.0} at fixed rho_gas=0.1.
-
-Results are printed as a table and saved as a multi-panel figure.
-"""
 
 import sys
 import os
@@ -30,7 +15,6 @@ from lbm.core import LBMSimulator
 
 OUTPUT_DIR = "output/scenario_f_parameter_study"
 
-# Common simulation settings
 _NX, _NY = 120, 120
 _RADIUS = 28
 _NUM_STEPS = 2000
@@ -45,7 +29,6 @@ def _effective_radius(rho_2d, rho_threshold):
 
 
 def _run_one(nx, ny, tau, G, rho_liquid, rho_gas, radius, num_steps):
-    """Return dict of measured metrics after running one simulation."""
     lbm = LBMSimulator(nx, ny, tau, G, rho_liquid, rho_gas)
     lbm.initialize_droplet(nx // 2, ny // 2, radius)
 
@@ -68,7 +51,6 @@ def _run_one(nx, ny, tau, G, rho_liquid, rho_gas, radius, num_steps):
     speed = np.sqrt(ux ** 2 + uy ** 2)
     max_spur_vel = float(speed.max())
 
-    # Mean spurious velocity in the interface region (20–80% of density range)
     rho_range = rho_max - rho_min
     if rho_range > 1e-6:
         interface_mask = (rho > rho_min + 0.2 * rho_range) & \
@@ -79,8 +61,6 @@ def _run_one(nx, ny, tau, G, rho_liquid, rho_gas, radius, num_steps):
 
     mlups = nx * ny * num_steps / elapsed / 1e6
 
-    # Detect instability: negative density means distribution functions blew up;
-    # max spurious velocity > 1.0 (Mach ~ 1.7) also signals breakdown.
     stable = rho_min >= 0.0 and max_spur_vel <= 1.0
 
     return {
@@ -96,11 +76,6 @@ def _run_one(nx, ny, tau, G, rho_liquid, rho_gas, radius, num_steps):
 
 
 def _print_table(title, header_row, rows, col_fmts):
-    """Print a simple text table.
-
-    String values (e.g. 'UNSTABLE') are printed as-is without applying the
-    format spec, so callers can mark bad rows without special-casing the helper.
-    """
     col_w = [max(len(h), 10) for h in header_row]
     sep = "  ".join("-" * w for w in col_w)
     hdr = "  ".join(f"{h:>{w}}" for h, w in zip(header_row, col_w))
@@ -123,7 +98,6 @@ def run(nx=_NX, ny=_NY, num_steps=_NUM_STEPS):
     print(f"Output directory: {OUTPUT_DIR}/")
     print(f"Grid: {nx}x{ny}, steps per run: {num_steps}")
 
-    # ── Sweep 1: tau ────────────────────────────────────────────────────────
     tau_values = [0.7, 0.8, 1.0, 1.2, 1.5]
     print(f"\n{'─'*60}")
     print(f"Sweep 1: tau ∈ {tau_values}  (G={_G_BASE}, rho_liq={_RHO_LIQ_BASE})")
@@ -165,7 +139,6 @@ def run(nx=_NX, ny=_NY, num_steps=_NUM_STEPS):
         min_stable = min(t for t, m in zip(tau_values, sweep1) if m['stable'])
         print(f"      Stable range: tau >= ~{min_stable} at this G value.")
 
-    # ── Sweep 2: initial rho_liquid ─────────────────────────────────────────
     rho_liq_values = [1.5, 2.0, 2.5, 3.0]
     print(f"\n{'─'*60}")
     print(f"Sweep 2: rho_liquid ∈ {rho_liq_values}  (G={_G_BASE}, tau=1.0)")
@@ -189,7 +162,20 @@ def run(nx=_NX, ny=_NY, num_steps=_NUM_STEPS):
         ["{:.1f}", "{:.4f}", "{:.4f}", "{:.2f}", "{:.1f}", "{:.2e}", "{:.1f}"],
     )
 
-    # ── Figure ───────────────────────────────────────────────────────────────
+    print(f"\n{'─'*60}")
+    print(f"Convergence check: tau=1.5, 10 000 steps  (G={_G_BASE}, rho_liq={_RHO_LIQ_BASE})")
+    print(f"{'─'*60}")
+
+    m_tau15_long = _run_one(nx, ny, 1.5, _G_BASE, _RHO_LIQ_BASE,
+                            _RHO_GAS_BASE, _RADIUS, num_steps=10_000)
+    print(f"  tau=1.5 (10k steps): contrast={m_tau15_long['contrast']:.2f}  "
+        f"r_eff={m_tau15_long['r_eff']:.1f}  "
+        f"u_max={m_tau15_long['max_spur_vel']:.2e}")
+
+    m_tau15_short = next(m for tau, m in zip(tau_values, sweep1) if tau == 1.5)
+    print(f"  tau=1.5 ( 2k steps): contrast={m_tau15_short['contrast']:.2f}  "
+        f"(difference: {abs(m_tau15_long['contrast'] - m_tau15_short['contrast']):.2f})")
+
     fig, axes = plt.subplots(2, 4, figsize=(18, 9))
 
     def _plot_sweep(row, x_vals, metrics, x_label, sweep_title):
@@ -209,7 +195,7 @@ def run(nx=_NX, ny=_NY, num_steps=_NUM_STEPS):
             vals_stable = [m[key] for m, s in zip(metrics, stable_mask) if s]
             ax.plot(x_stable, vals_stable, color=color,
                     marker='o', linewidth=1.5, markersize=7)
-            # Mark unstable x positions with vertical dotted lines
+
             for ux in x_unstable:
                 ax.axvline(x=ux, color='red', linestyle=':', alpha=0.6, linewidth=1.2)
             ax.set_xlabel(x_label, fontsize=10)
@@ -217,7 +203,7 @@ def run(nx=_NX, ny=_NY, num_steps=_NUM_STEPS):
             ax.grid(True, alpha=0.3)
             if col == 0:
                 ax.set_ylabel(sweep_title, fontsize=9, labelpad=2)
-            # Annotation on first panel only
+
             if col == 0 and x_unstable:
                 unstable_str = ', '.join(f'{x}' for x in x_unstable)
                 ax.text(0.03, 0.97,
@@ -241,7 +227,8 @@ def run(nx=_NX, ny=_NY, num_steps=_NUM_STEPS):
     print(f"\nSaved: {outfile}")
 
     return {'sweep_tau': sweep1, 'sweep_rho_liq': sweep2,
-            'tau_values': tau_values, 'rho_liq_values': rho_liq_values}
+        'tau_values': tau_values, 'rho_liq_values': rho_liq_values,
+        'convergence_check_tau15': m_tau15_long}
 
 
 if __name__ == "__main__":

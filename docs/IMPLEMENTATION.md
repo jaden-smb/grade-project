@@ -220,7 +220,7 @@ Extend to multi-component Shan-Chen:
 
 ### Adding a New Scenario
 
-1. Create `scenarios/e_your_scenario.py` with a `run()` function
+1. Create `scenarios/g_your_scenario.py` with a `run()` function (scenarios a–f already exist)
 2. Register it in the `SCENARIOS` dict in `main.py`
 3. The scenario can import `from lbm.runner import run_simulation` for the standard loop, or drive `LBMSimulator` directly for custom logic (see `scenarios/c_coexistence_curve.py` for an example)
 

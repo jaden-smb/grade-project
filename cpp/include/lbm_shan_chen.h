@@ -4,9 +4,8 @@
 #include <vector>
 #include <memory>
 
-// EoS selector constants
-static constexpr int EOS_ORIGINAL_SC        = 0;  // psi = 1 - exp(-rho/rho0)
-static constexpr int EOS_CARNAHAN_STARLING  = 1;  // Yuan-Schaefer with CS EoS
+static constexpr int EOS_ORIGINAL_SC        = 0;
+static constexpr int EOS_CARNAHAN_STARLING  = 1;
 
 class LBMShanChen {
 public:
@@ -29,15 +28,12 @@ public:
     int getClampCount() const { return clamp_count_; }
     void resetClampCount() { clamp_count_ = 0; }
 
-    // EoS selection (call before running steps; default = EOS_ORIGINAL_SC)
     void setEosType(int eos_type) { eos_type_ = eos_type; }
     int  getEosType() const       { return eos_type_; }
 
-    // Temperature for non-ideal EoS (Carnahan-Starling); default = 0.7 * Tc
     void setTemperature(double T) { T_eos_ = T; }
     double getTemperature() const { return T_eos_; }
 
-    // rho0 for original SC: psi = 1 - exp(-rho/rho0); default = 1/1.5
     void setRho0(double rho0) { rho0_ = rho0; }
     double getRho0() const { return rho0_; }
 
@@ -50,18 +46,17 @@ private:
     double rho_liquid_;
     double rho_gas_;
 
-    // EoS parameters (all have safe defaults matching original behaviour)
     int    eos_type_ = EOS_ORIGINAL_SC;
-    double rho0_    = 1.0 / 1.5;   // original SC: psi = 1 - exp(-1.5*rho)
-    double T_eos_   = 0.7 * 0.09433; // CS temperature (0.7 * Tc, Tc~0.09433 for a=0.5,b=2)
-    double a_cs_    = 0.5;          // CS mean-field attraction
-    double b_cs_    = 2.0;          // CS hard-sphere repulsion
+    double rho0_    = 1.0 / 1.5;
+    double T_eos_   = 0.7 * 0.09433;
+    double a_cs_    = 0.5;
+    double b_cs_    = 2.0;
     
     static const int Q = 9;
     static constexpr double w_[Q] = {
-        4.0/9.0,               // rest
-        1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0,    // cardinal
-        1.0/36.0, 1.0/36.0, 1.0/36.0, 1.0/36.0  // diagonal
+        4.0/9.0,
+        1.0/9.0, 1.0/9.0, 1.0/9.0, 1.0/9.0,
+        1.0/36.0, 1.0/36.0, 1.0/36.0, 1.0/36.0
     };
     static constexpr int cx_[Q] = {0, 1, 0, -1, 0, 1, -1, -1, 1};
     static constexpr int cy_[Q] = {0, 0, 1, 0, -1, 1, 1, -1, -1};
@@ -74,12 +69,12 @@ private:
     int index(int i, int j) const { return j * nx_ + i; }
     int f_index(int i, int j, int q) const { return (j * nx_ + i) * Q + q; }
 
-    void computeEquilibrium();   // f_eq(u_eq), u_eq = u_phys + F/(2*rho)
-    void computeShanChenForce(); // F = -G*psi(rho)*sum(w*psi(nb)*c)
-    void collide();              // BGK: f' = f - (f - f_eq)/tau
-    void stream();               // f(x+c, t+1) = f'(x, t)
-    void updateMacroscopic();    // rho = sum(f), u = (sum(f*c) + F/2)/rho
-    double psi(double rho) const; // dispatches based on eos_type_
+    void computeEquilibrium();
+    void computeShanChenForce();
+    void collide();
+    void stream();
+    void updateMacroscopic();
+    double psi(double rho) const;
 
     int clamp_count_ = 0;
 };

@@ -44,7 +44,7 @@ grade-project/
 ├── docs/
 │   ├── IMPLEMENTATION.md             # Algorithm and implementation details
 │   └── QUICKSTART.md                 # Quick start guide
-├── main.py                           # Entry point: python main.py [--scenario a|b|c|d|all]
+├── main.py                           # Entry point: python main.py [--scenario a|b|c|d|e|f|all]
 ├── CMakeLists.txt
 ├── setup.py
 ├── pyproject.toml
@@ -146,6 +146,8 @@ python main.py --scenario f   # Systematic parameter study
 # Each scenario file is also independently runnable
 python scenarios/a_equilibrium.py
 ```
+
+Console output from every run is automatically tee'd to `output/simulation_<timestamp>.txt`.
 
 ### The Six Scenarios
 

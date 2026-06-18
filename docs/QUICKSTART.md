@@ -40,7 +40,7 @@ src/lbm/lbm_shan_chen*.pyd  # Windows
 ## Run the Simulation
 
 ```bash
-# All four scenarios (sequential)
+# All six scenarios (sequential)
 python main.py
 
 # Single scenario
@@ -48,21 +48,27 @@ python main.py --scenario a    # Steady-state equilibrium
 python main.py --scenario b    # G-ramp evaporation analogy
 python main.py --scenario c    # Coexistence curve sweep
 python main.py --scenario d    # Laplace pressure test
+python main.py --scenario e    # EoS comparison (SC vs Carnahan-Starling)
+python main.py --scenario f    # Systematic parameter study
 
 # Each scenario is also directly executable
 python scenarios/a_equilibrium.py
 ```
 
+Console output is also saved to `output/simulation_<timestamp>.txt` automatically.
+
 ## Expected Output
 
-| Scenario | Grid | Steps | Description |
+| Scenario | Grid | Steps | Output |
 |---|---|---|---|
-| A | 200×200 | 5 000 | Steady-state droplet equilibrium; also exports OBJ sequence |
-| B | 200×200 | 8 000 | G ramped -5.0→-3.7; droplet dissolves past G_c ≈ -4.0 |
-| C | 150×150 | 3 000 × 5 | Sweeps G ∈ {-4.0 … -6.0}; plots coexistence curve |
-| D | 200×200 | 5 000 × 5 | Five radii (20–60 lu); fits Δp vs 1/R for surface tension σ |
+| A | 200×200 | 5 000 | Density plots, 3D surfaces, GIF animation, `metrics.png`, OBJ sequence |
+| B | 200×200 | 8 000 | Density plots, 3D surfaces, GIF animation, `metrics.png` |
+| C | 150×150 | 3 000 × 5 | Coexistence curve overlaid with Maxwell construction |
+| D | 200×200 | 5 000 × 5 | Δp vs 1/R linear fit; prints extracted surface tension σ |
+| E | 120×120 | 3 000 × 2 | Side-by-side coexistence curve and density contrast for SC vs CS EoS |
+| F | 120×120 | 2 000 × 9+ | τ and ρ_liquid sweeps; contrast, radius, spurious velocity, MLUPS tables |
 
-Each A/B scenario directory contains density plots, 3D surface images, animated GIFs, and `metrics.png` with radius, mass, aspect ratio, and circularity over time. Throughput (MLUPS) is printed to the console at the end of each run.
+Throughput (MLUPS) is printed to the console at the end of each run.
 
 ## Quick Parameter Tuning
 

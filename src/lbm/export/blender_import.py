@@ -1,12 +1,3 @@
-"""
-Blender script: import an OBJ sequence and set up per-frame visibility keyframes.
-
-Run this from inside Blender's scripting workspace, or via:
-  blender --background --python src/lbm/export/blender_import.py
-
-Edit SEQ_DIR below to point at your obj_sequence output folder.
-"""
-
 import bpy
 import os
 

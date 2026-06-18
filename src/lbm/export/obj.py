@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-Export 2D LBM density fields as Wavefront OBJ heightmap meshes.
-
-Supports two color modes:
-  'texture'  — UV-mapped PNG texture (Option A, default, best Blender/Maya compatibility)
-  'vertex'   — per-vertex color via unofficial "v x y z r g b" extension (Option B)
-"""
 
 import os
 import numpy as np
@@ -17,21 +10,7 @@ def export_density_to_obj(rho_2d, filepath, z_scale=50.0,
                           subsample=1, colormap='viridis',
                           rho_min=None, rho_max=None,
                           color_mode='texture'):
-    """
-    Export a 2D density field as a heightmap OBJ mesh.
-
-    Parameters:
-        rho_2d      : np.ndarray of shape (ny, nx) — the density field
-        filepath    : str — output path WITHOUT extension (e.g. "output/frame_00001")
-                      Creates filepath.obj, filepath.mtl, filepath_texture.png
-        z_scale     : float — vertical exaggeration factor (z = rho * z_scale)
-        subsample   : int — take every Nth point to reduce mesh size (1 = full res)
-        colormap    : str — matplotlib colormap name for vertex/texture colors
-        rho_min     : float — lower density bound for color normalization (None = auto)
-        rho_max     : float — upper density bound for color normalization (None = auto)
-        color_mode  : 'texture' (UV-mapped PNG, Option A) or
-                      'vertex'  (per-vertex r g b in OBJ, Option B)
-    """
+    
     rho_s = rho_2d[::subsample, ::subsample]
     ny_s, nx_s = rho_s.shape
 
@@ -41,7 +20,7 @@ def export_density_to_obj(rho_2d, filepath, z_scale=50.0,
     rho_norm = np.clip((rho_s - rmin) / rng, 0.0, 1.0)
 
     cmap = plt.get_cmap(colormap)
-    colors = cmap(rho_norm)  # (ny_s, nx_s, 4) RGBA
+    colors = cmap(rho_norm)
 
     x_coords = (np.arange(nx_s) - nx_s / 2.0) * subsample
     y_coords = (np.arange(ny_s) - ny_s / 2.0) * subsample
@@ -66,10 +45,6 @@ def export_density_to_obj(rho_2d, filepath, z_scale=50.0,
     vy = yy.ravel()
     vz = zz.ravel()
 
-    # Output vertices in Blender's Y-up OBJ convention:
-    #   OBJ X = grid column (vx)
-    #   OBJ Y = height / density (vz)  — Blender maps OBJ Y → Blender Z (up)
-    #   OBJ Z = grid row (vy)          — Blender maps OBJ Z → Blender -Y
     if color_mode == 'vertex':
         vr = colors[:, :, 0].ravel()
         vg = colors[:, :, 1].ravel()
@@ -142,18 +117,7 @@ def export_obj_sequence(frames, output_dir, z_scale=50.0,
                         subsample=1, colormap='viridis',
                         rho_min=None, rho_max=None,
                         color_mode='texture'):
-    """
-    Export a list of density frames as a numbered OBJ sequence.
 
-    Parameters:
-        frames      : list of np.ndarray — density fields from the simulation
-        output_dir  : str — directory for the OBJ files
-        z_scale, subsample, colormap, color_mode : same as export_density_to_obj
-        rho_min, rho_max : density range for consistent color scaling across all
-                           frames (None = computed globally from all frames)
-
-    Creates per-frame:  frame_NNNNN.obj  frame_NNNNN.mtl  frame_NNNNN_texture.png
-    """
     os.makedirs(output_dir, exist_ok=True)
 
     n = len(frames)

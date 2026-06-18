@@ -1,7 +1,6 @@
 import sys as _sys
 import os as _os
-# Ensure the compiled extension is found in the same directory as this file
-# (needed when src/ is on sys.path but src/lbm/ is not).
+
 _here = _os.path.dirname(_os.path.abspath(__file__))
 if _here not in _sys.path:
     _sys.path.insert(0, _here)
@@ -16,7 +15,6 @@ except ImportError as e:
         "or with setuptools:\n"
         "  pip install pybind11 && python setup.py build_ext --inplace"
     ) from e
-
 
 class LBMSimulator:
 

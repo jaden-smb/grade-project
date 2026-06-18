@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""Scenario E — EoS Comparison (Objective 1: Shan-Chen variants).
-
-Runs the same droplet simulation with two pseudopotential formulations:
-  EoS 0: Original Shan-Chen   psi = 1 - exp(-1.5*rho)
-  EoS 1: Carnahan-Starling    psi = sqrt(2*(p_CS - rho*cs2) / (G*cs2))
-               (Yuan & Schaefer 2006)
-
-For each EoS the coexistence curve (equilibrium rho_liq and rho_gas vs G)
-is measured and plotted on the same axes together with the density contrast
-ratio.  An inset table summarises the contrast at each G value.
-"""
 
 import sys
 import os
@@ -26,14 +15,12 @@ from lbm.core import LBMSimulator
 
 OUTPUT_DIR = "output/scenario_e_eos_comparison"
 
-# Carnahan-Starling critical temperature (a=0.5, b=2.0, R=1):  Tc ≈ 0.09433
 _CS_TC = 0.09433
-_CS_T_DEFAULT = 0.7 * _CS_TC   # well into two-phase region
+_CS_T_DEFAULT = 0.7 * _CS_TC  
 
 
 def _run_one(nx, ny, tau, G, rho_liquid, rho_gas, radius, num_steps,
              eos_type, T_cs):
-    """Run a single simulation and return (rho_liq, rho_gas, MLUPS)."""
     lbm = LBMSimulator(nx, ny, tau, G, rho_liquid, rho_gas,
                        eos_type=eos_type, T=T_cs)
     lbm.initialize_droplet(nx // 2, ny // 2, radius)
@@ -62,7 +49,7 @@ def run(nx=120, ny=120, tau=1.0, radius=28, num_steps=3000,
     print(f"CS temperature T = {T_cs:.5f}  (Tc = {_CS_TC:.5f},  T/Tc = {T_cs/_CS_TC:.3f})")
 
     EOS_LABELS = {0: "Original Shan-Chen", 1: "Carnahan-Starling (Yuan-Schaefer)"}
-    results = {}  # eos_type -> {'G': [], 'rho_liq': [], 'rho_gas': [], 'contrast': []}
+    results = {}
 
     for eos_type in [0, 1]:
         label = EOS_LABELS[eos_type]
@@ -89,14 +76,12 @@ def run(nx=120, ny=120, tau=1.0, radius=28, num_steps=3000,
             'contrast': contrasts,
         }
 
-    # ── Plot ────────────────────────────────────────────────────────────────
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
-    colors = {0: ('#1f77b4', '#d62728'),   # blue/red for SC
-              1: ('#2ca02c', '#ff7f0e')}    # green/orange for CS
+    colors = {0: ('#1f77b4', '#d62728'),
+              1: ('#2ca02c', '#ff7f0e')}
     markers = {0: 'o', 1: 's'}
 
-    # Left panel: coexistence curve
     ax = axes[0]
     for eos_type, label in EOS_LABELS.items():
         r = results[eos_type]
@@ -112,7 +97,6 @@ def run(nx=120, ny=120, tau=1.0, radius=28, num_steps=3000,
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
 
-    # Right panel: density contrast ratio
     ax = axes[1]
     for eos_type, label in EOS_LABELS.items():
         r = results[eos_type]
@@ -137,7 +121,6 @@ def run(nx=120, ny=120, tau=1.0, radius=28, num_steps=3000,
     plt.close(fig)
     print(f"\nSaved: {outfile}")
 
-    # Print summary table
     print("\n" + "=" * 65)
     print(f"{'Density Contrast Summary':^65}")
     print("=" * 65)
@@ -151,14 +134,8 @@ def run(nx=120, ny=120, tau=1.0, radius=28, num_steps=3000,
         cs_c = cs['contrast'][i]
         delta = sc_c - cs_c
         print(f"{G:>6.1f}  {sc_c:>12.2f}  {cs_c:>12.2f}  {delta:>+12.2f}")
-    print("=" * 65)
-    print("Note: With the Yuan-Schaefer formulation, CS coexistence densities")
-    print("depend only on temperature (T/Tc), not on G — hence the flat CS curves.")
-    print("The original SC EoS density contrast varies with G because psi encodes")
-    print("the EoS implicitly through the exponential form.")
 
     return results
-
 
 if __name__ == "__main__":
     run()

@@ -51,7 +51,6 @@ PYBIND11_MODULE(lbm_shan_chen, m) {
         .def_property_readonly("ny", &LBMShanChen::getNy,
                                "Grid height")
 
-        // EoS control (default eos_type=0 preserves original SC behaviour)
         .def("set_eos_type", &LBMShanChen::setEosType,
              "Select pseudopotential EoS: 0=original Shan-Chen, 1=Carnahan-Starling",
              py::arg("eos_type"))

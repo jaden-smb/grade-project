@@ -1,12 +1,3 @@
-"""Physics-level unit tests for the LBM C++ engine.
-
-Requires the C++ extension to be built.  All tests are skipped automatically
-when the extension is not available (e.g., on a fresh clone before building).
-
-Run with:
-    python -m pytest tests/test_physics.py -v
-"""
-
 import sys
 import os
 
@@ -26,9 +17,6 @@ requires_engine = pytest.mark.skipif(
     reason="C++ extension not built — run 'cmake -B build && cmake --build build' first",
 )
 
-
-# ─── helpers ────────────────────────────────────────────────────────────────
-
 def _make_sim(nx=80, ny=80, tau=1.0, G=-5.0,
               rho_liquid=2.0, rho_gas=0.1, radius=18):
     sim = LBMSimulator(nx, ny, tau, G, rho_liquid, rho_gas)
@@ -46,12 +34,8 @@ def _momentum(sim):
     rho = _rho(sim)
     return float((rho * ux).sum()), float((rho * uy).sum())
 
-
-# ─── tests ──────────────────────────────────────────────────────────────────
-
 @requires_engine
 def test_mass_conservation():
-    """Total mass must not drift by more than 0.1 % over 500 steps."""
     sim = _make_sim()
     mass_initial = float(_rho(sim).sum())
 
@@ -67,8 +51,6 @@ def test_mass_conservation():
 
 @requires_engine
 def test_phase_separation():
-    """With G=-5.0, max density must exceed 1.5 and min density must be < 0.5
-    after 2000 steps, confirming that phases have separated."""
     sim = _make_sim(G=-5.0)
     for _ in range(2000):
         sim.step()
@@ -84,9 +66,6 @@ def test_phase_separation():
 
 @requires_engine
 def test_symmetry():
-    """A centred droplet on a square grid must retain approximate 4-fold symmetry
-    after 500 steps.  The four quadrants are compared pairwise: the mean absolute
-    density difference must be < 5 % of the density range."""
     nx, ny = 80, 80
     sim = LBMSimulator(nx, ny, 1.0, -5.0, 2.0, 0.1)
     sim.initialize_droplet(nx // 2, ny // 2, 18)
@@ -103,7 +82,6 @@ def test_symmetry():
     q3 = rho[cy:, :cx]
     q4 = rho[cy:, cx:]
 
-    # Each quadrant vs its 180°-rotated partner
     diff_13 = np.abs(q1 - np.rot90(q4, 2)).mean()
     diff_24 = np.abs(q2 - np.rot90(q3, 2)).mean()
 
@@ -118,8 +96,6 @@ def test_symmetry():
 
 @requires_engine
 def test_momentum_conservation():
-    """With no external forcing and a symmetric initial droplet, total momentum
-    magnitude should remain < 1e-8 per lattice site after 500 steps."""
     nx, ny = 80, 80
     sim = LBMSimulator(nx, ny, 1.0, -5.0, 2.0, 0.1)
     sim.initialize_droplet(nx // 2, ny // 2, 18)
@@ -129,7 +105,6 @@ def test_momentum_conservation():
 
     px, py = _momentum(sim)
     n_sites = nx * ny
-    # Normalise by number of sites for a grid-size-independent threshold
     mag = (px ** 2 + py ** 2) ** 0.5 / n_sites
     assert mag < 1e-8, (
         f"Momentum magnitude per site {mag:.2e} exceeds 1e-8 threshold"
@@ -138,9 +113,6 @@ def test_momentum_conservation():
 
 @requires_engine
 def test_default_eos_unchanged():
-    """EoS type 0 must give the same density field as the pre-refactor default
-    (ψ = 1 − exp(−1.5ρ)).  Verified by checking that rho0 = 1/1.5 reproduces
-    identical results to the baseline factory settings."""
     nx, ny = 60, 60
     sim_a = LBMSimulator(nx, ny, 1.0, -5.0, 2.0, 0.1, eos_type=0)
     sim_a.initialize_droplet(nx // 2, ny // 2, 14)
@@ -161,8 +133,6 @@ def test_default_eos_unchanged():
 
 @requires_engine
 def test_cs_eos_gives_phase_separation():
-    """The Carnahan-Starling EoS (eos_type=1) must also produce phase separation
-    (density contrast > 1.5) after 3000 steps at G=-5.0 with T=0.7*Tc."""
     nx, ny = 80, 80
     T_cs = 0.7 * 0.09433
     sim = LBMSimulator(nx, ny, 1.0, -5.0, 2.0, 0.1, eos_type=1, T=T_cs)

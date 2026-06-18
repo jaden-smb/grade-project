@@ -32,6 +32,9 @@ density_*.png
 density_evolution.gif
 output/
 
+# Claude Code
+CLAUDE.md
+
 # IDE
 .vscode/
 .idea/

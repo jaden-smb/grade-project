@@ -76,7 +76,6 @@ def plot_metrics(metrics_history, output_dir):
         axes[0, 1].set_ylim(0, 1.1 * m0)
         axes[0, 1].axhline(m0, color='k', linestyle='--', linewidth=0.8,
                         alpha=0.5, label=f'initial = {m0:.2f}')
-        # Quantify the drift in the title so the committee sees the number
         drift_pct = 100.0 * (masses[-1] - m0) / m0
         axes[0, 1].set_title(
             f'Total Mass — drift = {drift_pct:+.2e} %',
@@ -159,8 +158,6 @@ def plot_velocity_field(lbm, nx, ny, output_dir):
     max_speed = float(speed.max())
     print(f"  Max spurious velocity magnitude:  {max_speed:.6f} lu/step")
 
-    # Mean spurious velocity in the interface region (20–80 % of density range),
-    # which is a more physically meaningful indicator than the global maximum.
     rho_min, rho_max = float(rho_2d.min()), float(rho_2d.max())
     rho_range = rho_max - rho_min
     if rho_range > 1e-6:

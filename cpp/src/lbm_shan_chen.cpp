@@ -61,13 +61,9 @@ double LBMShanChen::psi(double rho) const {
         return 1.0 - std::exp(-rho / rho0_);
     }
 
-    // EOS_CARNAHAN_STARLING: Yuan-Schaefer (2006) formulation
-    // psi = sqrt(2*(p_CS - rho*cs2) / (G*cs2))
-    // p_CS = rho*T*f(eta) - a*rho^2,  eta = b*rho/4,
-    //        f(eta) = (1+eta+eta^2-eta^3)/(1-eta)^3
     constexpr double cs2 = 1.0 / 3.0;
     double eta = b_cs_ * rho / 4.0;
-    if (eta >= 0.99) eta = 0.99;  // stay below packing singularity
+    if (eta >= 0.99) eta = 0.99;
     const double d  = 1.0 - eta;
     const double f_eta = (1.0 + eta + eta*eta - eta*eta*eta) / (d*d*d);
     const double p_cs  = rho * T_eos_ * f_eta - a_cs_ * rho * rho;
